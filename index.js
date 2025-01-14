@@ -7,8 +7,10 @@ import helmet from "helmet";
 import publicRoute from "./route/publicRoute.js";
 import notRouteFound from "./middleware/noRouteFound.js";
 import globalErrorHandle from "./middleware/globalErrorHandle.js";
+import authRoute from "./route/authRoute.js";
+import connectDB from "./config/db.js";
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3000;
 const app = express();
 dotenv.config();
 app.use(express.json());
@@ -23,7 +25,10 @@ app.use(
   })
 );
 
+connectDB().catch(console.error);
+
 app.use("/public", publicRoute);
+app.use("/auth", authRoute);
 
 app.get("/", (req, res) => {
   res.send("Hello World");
