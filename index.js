@@ -20,7 +20,11 @@ app.use(morgan("dev"));
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: [
+      "http://localhost:5173",
+      "https://fir-learning-793eb.web.app",
+      "https://fir-learning-793eb.firebaseapp.com",
+    ],
     credentials: true,
   })
 );

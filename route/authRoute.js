@@ -11,9 +11,20 @@ const userCollection = db.collection("users");
 authRouter.post("/signup", async (req, res, next) => {
   const user = req.body;
   if (!user.email || !user.password) {
-    return next({
-      message: "Please provide email and password",
-      statusCode: 400,
+    return res.status(404).send({
+      error: true,
+      success: false,
+      message: "Please provide valid data",
+    });
+  }
+
+  // check if user already exists
+  const existingUser = await userCollection.findOne({ email: user.email });
+  if (existingUser) {
+    return res.status(400).send({
+      error: true,
+      success: false,
+      message: "User already exists",
     });
   }
 
@@ -68,24 +79,6 @@ authRouter.post("/social-login", async (req, res, next) => {
   }
 });
 
-// user logout route
-authRouter.post("/logout", (req, res, next) => {
-  try {
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      maxAge: 0,
-    });
-    res.status(200).json({
-      success: true,
-      message: "Successfully logged out",
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
 // jwt token generation route
 authRouter.post("/jwt", async (req, res, next) => {
   const { email, name } = req.body;
@@ -110,17 +103,12 @@ authRouter.post("/jwt", async (req, res, next) => {
       expiresIn: "5h",
     });
 
-    res
-      .cookie("token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      })
-      .send({
-        success: true,
-        error: false,
-        message: "Token generated successfully",
-      });
+    res.send({
+      success: true,
+      error: false,
+      token,
+      message: "Token generated successfully",
+    });
   } catch (error) {
     next(error);
   }
