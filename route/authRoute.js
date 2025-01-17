@@ -28,6 +28,9 @@ authRouter.post("/signup", async (req, res, next) => {
     });
   }
 
+  // setup user role to student by default
+  user.role = "student";
+
   const hashedPassword = await bcrypt.hash(user.password, 10);
   user.password = hashedPassword;
 
@@ -60,6 +63,7 @@ authRouter.post("/social-login", async (req, res, next) => {
   try {
     let user = await userCollection.findOne({ email: userData.email });
     if (!user) {
+      userData.role = "student";
       const result = await userCollection.insertOne(userData);
       res.status(200).send({
         error: false,

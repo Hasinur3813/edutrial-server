@@ -4,7 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import morgan from "morgan";
 import helmet from "helmet";
-import publicRoute from "./route/publicRoute.js";
+import teachersRoute from "./route/teachersRoute.js";
 import notRouteFound from "./middleware/noRouteFound.js";
 import globalErrorHandle from "./middleware/globalErrorHandle.js";
 import authRoute from "./route/authRoute.js";
@@ -31,7 +31,7 @@ app.use(
 
 connectDB().catch(console.error);
 
-app.use("/public", publicRoute);
+app.use("/teachers", teachersRoute);
 app.use("/auth", authRoute);
 
 app.get("/", (req, res) => {
