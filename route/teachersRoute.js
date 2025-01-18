@@ -3,8 +3,10 @@ import express from "express";
 const teachersRoute = express.Router();
 import verifyToken from "../middleware/verifyToken.js";
 import { db } from "../config/db.js";
+import verifyTeacher from "../middleware/verifyTeacher.js";
 
 const teachersCollection = db.collection("teachers");
+const classCollection = db.collection("classes");
 
 // submit teacher request
 teachersRoute.post("/request", verifyToken, async (req, res, next) => {
@@ -74,4 +76,108 @@ teachersRoute.get("/status/:email", verifyToken, async (req, res, next) => {
     next(error);
   }
 });
+
+// add class by teacher
+teachersRoute.post(
+  "/add-class",
+  verifyToken,
+  verifyTeacher,
+  async (req, res, next) => {
+    const teacher = req.body;
+    if (!teacher) {
+      return res.status(404).send({
+        error: true,
+        success: false,
+        message: "Required data not found!",
+      });
+    }
+
+    // add status pending by default
+    teacher.status = "pending";
+
+    try {
+      const result = await classCollection.insertOne(teacher);
+
+      res.status(200).send({
+        error: false,
+        success: true,
+        message: "Data inserted successfully",
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// get all classes
+
+teachersRoute.get(
+  "/all-classes/:email",
+  verifyToken,
+  verifyTeacher,
+  async (req, res, next) => {
+    const email = req.params.email;
+    if (!email) {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid email or update data",
+      });
+    }
+
+    try {
+      const result = await classCollection.find({ email }).toArray();
+      res.status(200).send({
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// update class
+teachersRoute.patch(
+  "/update-class/:email",
+  verifyToken,
+  verifyTeacher,
+  async (req, res, next) => {
+    const email = req.params?.email;
+    const data = req.body;
+
+    if (!email || !data) {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid email or update data",
+      });
+    }
+
+    try {
+      const result = await classCollection.findOneAndUpdate(
+        { email },
+        {
+          $set: data,
+        },
+        {
+          returnDocument: "after",
+        }
+      );
+      if (!result) {
+        return res.status(404).send({
+          success: false,
+          message: "Class not found",
+        });
+      }
+
+      res.status(200).send({
+        success: true,
+        message: "Class updated successfully",
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 export default teachersRoute;

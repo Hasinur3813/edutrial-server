@@ -107,7 +107,7 @@ adminRoute.patch(
   }
 );
 
-// get all the users available
+// get all the users available in the database
 
 adminRoute.get(
   "/all-users",
@@ -127,5 +127,65 @@ adminRoute.get(
     }
   }
 );
+
+// make admin  to users
+adminRoute.patch(
+  "/make-admin/:email",
+  verifyToken,
+  verifyAdmin,
+  async (req, res, next) => {
+    const email = req.params?.email;
+    if (!email) {
+      return res.status(404).send({
+        error: true,
+        success: false,
+        message: "Required data is not found!",
+      });
+    }
+
+    const query = { email };
+    const updateUser = {
+      $set: {
+        role: "admin",
+      },
+    };
+
+    try {
+      const result = await userCollection.updateOne(query, updateUser);
+      res.status(200).send({
+        success: true,
+        error: false,
+        message: "Successfully made the user as Admin",
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// get users by search
+
+adminRoute.get("/users", verifyToken, verifyAdmin, async (req, res, next) => {
+  const value = req.query?.search;
+
+  const query = {
+    $or: [
+      { name: { $regex: value, $options: "i" } },
+      { email: { $regex: value, $options: "i" } },
+    ],
+  };
+  try {
+    const result = await userCollection.find(query).toArray();
+    res.status(200).send({
+      error: false,
+      sucess: true,
+      message: "Users by search",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default adminRoute;
