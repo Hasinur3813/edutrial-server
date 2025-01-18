@@ -23,6 +23,25 @@ teachersRoute.post("/request", verifyToken, async (req, res, next) => {
   data.status = "pending";
 
   try {
+    const isTeacherExist = await teachersCollection.findOne({ email });
+
+    if (isTeacherExist && isTeacherExist.status === "rejected") {
+      const result = await teachersCollection.updateOne(
+        { email },
+        {
+          $set: { status: "pending" },
+        },
+        { upsert: true }
+      );
+
+      return res.status(200).json({
+        error: false,
+        success: true,
+        data: result,
+        message: "Successfully submitted teacher request!",
+      });
+    }
+
     const result = await teachersCollection.insertOne(data);
 
     res.status(200).json({

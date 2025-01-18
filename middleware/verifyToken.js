@@ -1,19 +1,17 @@
 import jwt from "jsonwebtoken";
 
 const verifyToken = (req, res, next) => {
-  const token = req.headers.authorization.split(" ")[1];
-
-  if (!token) {
-    return res.status(400).send({
-      error: true,
-      success: false,
-      message: "Unauthenticated user",
-    });
+  if (!req.headers.authorization) {
+    return res.status(401).send({ message: "unauthorized access" });
   }
-
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  req.user = decoded;
-  next();
+  const token = req.headers.authorization.split(" ")[1];
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: "unauthorized access" });
+    }
+    req.user = decoded;
+    next();
+  });
 };
 
 export default verifyToken;

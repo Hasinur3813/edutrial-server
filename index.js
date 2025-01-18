@@ -9,6 +9,8 @@ import notRouteFound from "./middleware/noRouteFound.js";
 import globalErrorHandle from "./middleware/globalErrorHandle.js";
 import authRoute from "./route/authRoute.js";
 import connectDB from "./config/db.js";
+import adminRoute from "./route/adminRoute.js";
+import usersRoute from "./route/usersRoute.js";
 
 const port = process.env.PORT || 3000;
 const app = express();
@@ -33,6 +35,8 @@ connectDB().catch(console.error);
 
 app.use("/teachers", teachersRoute);
 app.use("/auth", authRoute);
+app.use("/admin", adminRoute);
+app.use("/users", usersRoute);
 
 app.get("/", (req, res) => {
   res.send("Hello World");
