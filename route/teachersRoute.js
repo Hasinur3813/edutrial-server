@@ -4,6 +4,7 @@ const teachersRoute = express.Router();
 import verifyToken from "../middleware/verifyToken.js";
 import { db } from "../config/db.js";
 import verifyTeacher from "../middleware/verifyTeacher.js";
+import { ObjectId } from "mongodb";
 
 const teachersCollection = db.collection("teachers");
 const classCollection = db.collection("classes");
@@ -172,6 +173,37 @@ teachersRoute.patch(
       res.status(200).send({
         success: true,
         message: "Class updated successfully",
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// delete teachers class
+teachersRoute.delete(
+  "/delete-class/:id",
+  verifyToken,
+  verifyTeacher,
+  async (req, res, next) => {
+    const id = req.params?.id;
+    console.log(id);
+
+    if (!id) {
+      return res.status(404).send({
+        error: true,
+        success: false,
+        message: "Required data not found",
+      });
+    }
+
+    try {
+      const result = await classCollection.deleteOne({ _id: new ObjectId(id) });
+      res.status(200).send({
+        error: false,
+        success: true,
+        message: "Sucessfully deleted the class",
         data: result,
       });
     } catch (error) {
