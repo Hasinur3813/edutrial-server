@@ -8,7 +8,7 @@ const verifyTeacher = async (req, res, next) => {
     const user = await userCollection.findOne({ email });
     const userRole = user.role;
 
-    if (userRole === "teacher") {
+    if (userRole === "teacher" || userRole === "admin") {
       next();
     } else {
       res.status(403).send({
