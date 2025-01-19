@@ -8,6 +8,7 @@ import { ObjectId } from "mongodb";
 
 const teachersCollection = db.collection("teachers");
 const classCollection = db.collection("classes");
+const assignmentCollection = db.collection("assignments");
 
 // submit teacher request
 teachersRoute.post("/request", verifyToken, async (req, res, next) => {
@@ -204,6 +205,36 @@ teachersRoute.delete(
         error: false,
         success: true,
         message: "Sucessfully deleted the class",
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// add assignmet for specific classe
+teachersRoute.post(
+  "/add-assignment",
+  verifyToken,
+  verifyTeacher,
+  async (req, res, next) => {
+    const data = req.body;
+    if (!data) {
+      return res.status(404).send({
+        message: "Data required!",
+      });
+    }
+
+    data.createdAt = new Date();
+    console.log(data);
+
+    try {
+      const result = await assignmentCollection.insertOne(data);
+      res.status(200).send({
+        error: false,
+        success: true,
+        message: "Assignment created successfully",
         data: result,
       });
     } catch (error) {
