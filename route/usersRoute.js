@@ -50,12 +50,22 @@ usersRoute.get(`/role/:email`, verifyToken, async (req, res, next) => {
 
 // get all the classes
 usersRoute.get("/all-classes", async (req, res, next) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
   try {
-    const result = await classCollection.find({ status: "accepted" }).toArray();
+    const result = await classCollection
+      .find({ status: "accepted" })
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+    const totalClasses = await classCollection.countDocuments();
     res.status(200).send({
       error: false,
       success: true,
       message: "All the classes created by teachers",
+      totalClasses,
       data: result,
     });
   } catch (error) {
