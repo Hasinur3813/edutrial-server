@@ -86,8 +86,8 @@ teachersRoute.post(
   verifyToken,
   verifyTeacher,
   async (req, res, next) => {
-    const teacher = req.body;
-    if (!teacher) {
+    const teacherClass = req.body;
+    if (!teacherClass) {
       return res.status(404).send({
         error: true,
         success: false,
@@ -96,10 +96,11 @@ teachersRoute.post(
     }
 
     // add status pending by default
-    teacher.status = "pending";
+    teacherClass.status = "pending";
+    teacherClass.enrollments = 0;
 
     try {
-      const result = await classCollection.insertOne(teacher);
+      const result = await classCollection.insertOne(teacherClass);
 
       res.status(200).send({
         error: false,

@@ -10,10 +10,11 @@ const userCollection = db.collection("users");
 const classCollection = db.collection("classes");
 const enrollCollection = db.collection("enrollments");
 const assignmentCollection = db.collection("assignments");
+const feedbackCollection = db.collection("feedback");
 
 const usersRoute = express.Router();
 
-usersRoute.get(`/role/:email`, async (req, res, next) => {
+usersRoute.get(`/role/:email`, verifyToken, async (req, res, next) => {
   const { email } = req.params;
 
   if (!email) {
@@ -103,10 +104,17 @@ usersRoute.post("/enrollments", verifyToken, async (req, res, next) => {
   const data = req.body;
   data.date = new Date();
   data.status = "enrolled";
-  console.log(data);
+  data.enrollments = 0;
+
+  const { classId } = data;
+  const query = { _id: new ObjectId(classId) };
+  const updataClass = {
+    $inc: { enrollments: 1 },
+  };
 
   try {
     const result = await enrollCollection.insertOne(data);
+    await classCollection.findOneAndUpdate(query, updataClass);
     res.status(200).send({
       error: false,
       sucess: true,
@@ -120,7 +128,7 @@ usersRoute.post("/enrollments", verifyToken, async (req, res, next) => {
 
 // get all the enrolled classes for specific students
 
-usersRoute.get("/enrolled-classes", async (req, res, next) => {
+usersRoute.get("/enrolled-classes", verifyToken, async (req, res, next) => {
   const email = req.query?.email;
   if (!email) {
     return res.status(404).send("Required Data Not Found!");
@@ -191,24 +199,74 @@ usersRoute.get("/all-assignments/:id", verifyToken, async (req, res, next) => {
 
 // assignment submisstion
 
-usersRoute.patch("/assignment-submission/:id", async (req, res, next) => {
-  const id = req.params?.id;
-  const query = { _id: new ObjectId(id) };
-  const updateAssignment = {
-    $inc: { submissions: 1 },
-  };
-  const options = { returnDocument: "after" };
+usersRoute.patch(
+  "/assignment-submission/:id",
+  verifyToken,
+  async (req, res, next) => {
+    const id = req.params?.id;
+    const query = { _id: new ObjectId(id) };
+    const updateAssignment = {
+      $inc: { submissions: 1 },
+    };
+    const options = { returnDocument: "after" };
+
+    try {
+      const result = await assignmentCollection.findOneAndUpdate(
+        query,
+        updateAssignment,
+        options
+      );
+
+      res.send({
+        success: true,
+        error: false,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// class feedback
+usersRoute.post("/feedback", verifyToken, async (req, res, next) => {
+  const feedback = req.body;
+  if (!feedback) {
+    return res.status(404).send({
+      error: true,
+      success: false,
+      message: "Feedback is required!",
+    });
+  }
 
   try {
-    const result = await assignmentCollection.findOneAndUpdate(
-      query,
-      updateAssignment,
-      options
-    );
-    console.log(result);
-    res.send({
-      success: true,
+    const result = await feedbackCollection.insertOne(feedback);
+    res.status(200).send({
       error: false,
+      success: true,
+      message: "Successfully submitted feedback",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// search classes
+usersRoute.get("/classes", async (req, res, next) => {
+  const value = req.query.search;
+  const query = {
+    $or: [
+      { title: { $regex: value, $options: "i" } },
+      { description: { $regex: value, $options: "i" } },
+    ],
+  };
+  try {
+    const result = await classCollection.find(query).toArray();
+    res.status(200).send({
+      error: false,
+      sucess: true,
+      message: "Classes by search",
       data: result,
     });
   } catch (error) {
