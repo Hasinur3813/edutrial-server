@@ -9,6 +9,7 @@ import { ObjectId } from "mongodb";
 const teachersCollection = db.collection("teachers");
 const classCollection = db.collection("classes");
 const assignmentCollection = db.collection("assignments");
+const enrollCollection = db.collection("enrollments");
 
 // submit teacher request
 teachersRoute.post("/request", verifyToken, async (req, res, next) => {
@@ -244,13 +245,34 @@ teachersRoute.post(
 );
 
 // get specific class stats
-teachersRoute.get(
-  "/class-stats/:id",
-  verifyToken,
-  verifyTeacher,
-  async (req, res, next) => {
-    const id = req.params?.id;
+teachersRoute.get("/class-stats/:id", async (req, res, next) => {
+  const classId = req.params?.id;
+
+  try {
+    const totalAssignments = await assignmentCollection
+      .find({
+        class_id: classId,
+      })
+      .toArray();
+    const totalEnrollments = await enrollCollection.countDocuments({
+      classId,
+    });
+
+    const totalSubmissions = totalAssignments.reduce((accum, assignment) => {
+      return accum + assignment.submissions;
+    }, 0);
+
+    res.status(200).send({
+      success: true,
+      data: {
+        totalAssignments: totalAssignments.length,
+        totalEnrollments,
+        totalSubmissions,
+      },
+    });
+  } catch (error) {
+    next(error);
   }
-);
+});
 
 export default teachersRoute;
