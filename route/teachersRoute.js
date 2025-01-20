@@ -213,7 +213,7 @@ teachersRoute.delete(
   }
 );
 
-// add assignmet for specific classe
+// add assignmet for specific class
 teachersRoute.post(
   "/add-assignment",
   verifyToken,
@@ -227,7 +227,7 @@ teachersRoute.post(
     }
 
     data.createdAt = new Date();
-    console.log(data);
+    data.submissions = 0;
 
     try {
       const result = await assignmentCollection.insertOne(data);
@@ -240,6 +240,16 @@ teachersRoute.post(
     } catch (error) {
       next(error);
     }
+  }
+);
+
+// get specific class stats
+teachersRoute.get(
+  "/class-stats/:id",
+  verifyToken,
+  verifyTeacher,
+  async (req, res, next) => {
+    const id = req.params?.id;
   }
 );
 

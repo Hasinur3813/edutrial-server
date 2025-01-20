@@ -1,7 +1,7 @@
 import express from "express";
 import { db } from "../config/db.js";
 import verifyToken from "../middleware/verifyToken.js";
-import { ObjectId } from "mongodb";
+import { ObjectId, ReturnDocument } from "mongodb";
 import dotenv from "dotenv";
 dotenv.config();
 import Stripe from "stripe";
@@ -9,6 +9,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET);
 const userCollection = db.collection("users");
 const classCollection = db.collection("classes");
 const enrollCollection = db.collection("enrollments");
+const assignmentCollection = db.collection("assignments");
 
 const usersRoute = express.Router();
 
@@ -162,6 +163,53 @@ usersRoute.get("/enrolled-classes", async (req, res, next) => {
       success: true,
       message: "Enrolled Classes",
       data: enrolledClasses,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// get all the assignments for a specific class
+
+usersRoute.get("/all-assignments/:id", verifyToken, async (req, res, next) => {
+  const id = req.params?.id;
+  try {
+    const assignments = await assignmentCollection
+      .find({ class_id: id })
+      .toArray();
+
+    res.status(200).send({
+      error: false,
+      succes: true,
+      message: "All the assignments",
+      data: assignments,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// assignment submisstion
+
+usersRoute.patch("/assignment-submission/:id", async (req, res, next) => {
+  const id = req.params?.id;
+  const query = { _id: new ObjectId(id) };
+  const updateAssignment = {
+    $inc: { submissions: 1 },
+  };
+  const options = { returnDocument: "after" };
+
+  try {
+    const result = await assignmentCollection.findOneAndUpdate(
+      query,
+      updateAssignment,
+      options
+    );
+    console.log(result);
+    res.send({
+      success: true,
+      error: false,
+      data: result,
     });
   } catch (error) {
     next(error);
