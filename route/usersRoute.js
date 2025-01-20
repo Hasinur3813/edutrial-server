@@ -138,8 +138,13 @@ usersRoute.post("/enrollments", verifyToken, async (req, res, next) => {
 
 // get all the enrolled classes for specific students
 
-usersRoute.get("/enrolled-classes", verifyToken, async (req, res, next) => {
+usersRoute.post("/enrolled-classes", verifyToken, async (req, res, next) => {
   const email = req.query?.email;
+  const { currentPage, pageSize } = req.body;
+  const page = parseInt(currentPage) || 1;
+  const limit = parseInt(pageSize) || 10;
+  const skip = (page - 1) * limit;
+
   if (!email) {
     return res.status(404).send("Required Data Not Found!");
   }
@@ -174,13 +179,18 @@ usersRoute.get("/enrolled-classes", verifyToken, async (req, res, next) => {
           },
         },
       ])
+      .skip(skip)
+      .limit(limit)
       .toArray();
+
+    const totalClasses = await enrollCollection.countDocuments({ user: email });
 
     res.status(200).send({
       error: false,
       success: true,
       message: "Enrolled Classes",
       data: enrolledClasses,
+      totalClasses,
     });
   } catch (error) {
     next(error);

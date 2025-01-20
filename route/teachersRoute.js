@@ -116,12 +116,17 @@ teachersRoute.post(
 
 // get all classes
 
-teachersRoute.get(
+teachersRoute.post(
   "/all-classes/:email",
   verifyToken,
   verifyTeacher,
   async (req, res, next) => {
     const email = req.params.email;
+    const { currentPage, pageSize } = req.body;
+    const page = parseInt(currentPage) || 1;
+    const limit = parseInt(pageSize) || 10;
+    const skip = (page - 1) * limit;
+
     if (!email) {
       return res.status(400).send({
         success: false,
@@ -130,8 +135,15 @@ teachersRoute.get(
     }
 
     try {
-      const result = await classCollection.find({ email }).toArray();
+      const result = await classCollection
+        .find({ email })
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+      const totalClass = await classCollection.countDocuments({ email });
+
       res.status(200).send({
+        totalClass,
         data: result,
       });
     } catch (error) {

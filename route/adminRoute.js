@@ -14,12 +14,23 @@ adminRoute.get(
   verifyToken,
   verifyAdmin,
   async (req, res, next) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     try {
-      const cursor = teachersCollection.find();
-      const teachers = await cursor.toArray();
+      const teachers = await teachersCollection
+        .find()
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+
+      const totalTeachers = await teachersCollection.countDocuments();
+
       res.status(200).send({
         success: true,
         error: false,
+        totalTeachers,
         message: "Operation successfull",
         data: teachers,
       });
@@ -116,11 +127,22 @@ adminRoute.get(
   verifyToken,
   verifyAdmin,
   async (req, res, next) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     try {
-      const users = await userCollection.find().toArray();
+      const users = await userCollection
+        .find()
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+
+      const totalUsers = await userCollection.countDocuments();
       res.status(200).send({
         success: true,
         error: false,
+        totalUsers,
         message: "all users",
         data: users,
       });
@@ -197,11 +219,22 @@ adminRoute.get(
   verifyToken,
   verifyAdmin,
   async (req, res, next) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     try {
-      const result = await classCollection.find().toArray();
+      const result = await classCollection
+        .find()
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+
+      const totalClasses = await classCollection.countDocuments();
       res.status(200).send({
         error: false,
         success: true,
+        totalClasses,
         message: "All the classes created by teachers",
         data: result,
       });
