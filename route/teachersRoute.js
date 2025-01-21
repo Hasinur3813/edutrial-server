@@ -34,7 +34,7 @@ teachersRoute.post("/request", verifyToken, async (req, res, next) => {
       const result = await teachersCollection.updateOne(
         { email },
         {
-          $set: { status: "pending" },
+          $set: data,
         },
         { upsert: true }
       );
