@@ -294,4 +294,40 @@ usersRoute.get("/classes", async (req, res, next) => {
   }
 });
 
+// get some classes for homepaga
+usersRoute.get("/homepage-classes", async (req, res, next) => {
+  try {
+    const result = await classCollection
+      .find({ status: "accepted" })
+      .limit(5)
+      .toArray();
+    res.status(200).send({
+      error: false,
+      success: true,
+      message: "Some classes for homepage",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// get homepage stats
+usersRoute.get("/homepage-stats", async (req, res, next) => {
+  try {
+    const totalClasses = await classCollection.countDocuments({
+      status: "accepted",
+    });
+    const totalUsers = await userCollection.countDocuments();
+    const totalEnrollments = await enrollCollection.countDocuments();
+    res.status(200).send({
+      error: false,
+      success: true,
+      message: "Homepage stats",
+      data: { totalClasses, totalUsers, totalEnrollments },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 export default usersRoute;
