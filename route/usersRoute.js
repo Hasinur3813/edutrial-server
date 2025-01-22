@@ -61,12 +61,56 @@ usersRoute.get("/all-classes", async (req, res, next) => {
       .skip(skip)
       .limit(limit)
       .toArray();
-    const totalClasses = await classCollection.countDocuments();
+    const totalClasses = await classCollection.countDocuments({
+      status: "accepted",
+    });
     res.status(200).send({
       error: false,
       success: true,
       message: "All the classes created by teachers",
       totalClasses,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+//get classes by search
+/*
+
+  The below featuere is not used in the client side.
+  need to implement in the client side to use this feature later.
+
+
+*/
+usersRoute.get("/classes", async (req, res, next) => {
+  const value = req.query.search;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const query = {
+    $or: [
+      { title: { $regex: value, $options: "i" } },
+      { description: { $regex: value, $options: "i" } },
+    ],
+  };
+  try {
+    const result = await classCollection
+      .find(query)
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+
+    const totalClasses = await classCollection.countDocuments({
+      status: "accepted",
+    });
+    res.status(200).send({
+      error: false,
+      sucess: true,
+      totalClasses,
+      message: "Classes by search",
       data: result,
     });
   } catch (error) {
@@ -347,34 +391,15 @@ usersRoute.post("/feedback", verifyToken, async (req, res, next) => {
   }
 });
 
-// search classes
-usersRoute.get("/classes", async (req, res, next) => {
-  const value = req.query.search;
-  const query = {
-    $or: [
-      { title: { $regex: value, $options: "i" } },
-      { description: { $regex: value, $options: "i" } },
-    ],
-  };
-  try {
-    const result = await classCollection.find(query).toArray();
-    res.status(200).send({
-      error: false,
-      sucess: true,
-      message: "Classes by search",
-      data: result,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
 // get some classes for homepaga
 usersRoute.get("/homepage-classes", async (req, res, next) => {
   try {
     const result = await classCollection
-      .find({ status: "accepted" })
-      .limit(5)
+      .aggregate([
+        { $match: { status: "accepted" } },
+        { $sort: { enrollments: -1 } },
+        { $limit: 5 },
+      ])
       .toArray();
     res.status(200).send({
       error: false,
