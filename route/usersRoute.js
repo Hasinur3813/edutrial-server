@@ -11,6 +11,7 @@ const classCollection = db.collection("classes");
 const enrollCollection = db.collection("enrollments");
 const assignmentCollection = db.collection("assignments");
 const feedbackCollection = db.collection("feedback");
+const submissionCollection = db.collection("submissions");
 
 const usersRoute = express.Router();
 
@@ -197,6 +198,59 @@ usersRoute.post("/enrolled-classes", verifyToken, async (req, res, next) => {
   }
 });
 
+usersRoute.get("/enrolled-class/:id", verifyToken, async (req, res, next) => {
+  const id = req.params?.id;
+  try {
+    const result = await enrollCollection
+      .aggregate([
+        {
+          $match: {
+            classId: id,
+          },
+        },
+        {
+          $addFields: {
+            classId: { $toObjectId: "$classId" },
+          },
+        },
+        {
+          $lookup: {
+            from: "classes",
+            localField: "classId",
+            foreignField: "_id",
+            as: "classDetails",
+          },
+        },
+        {
+          $unwind: "$classDetails",
+        },
+        {
+          $replaceRoot: {
+            newRoot: "$classDetails",
+          },
+        },
+      ])
+      .toArray();
+
+    if (result.length === 0) {
+      return res.status(404).send({
+        error: true,
+        success: false,
+        message: "Class not found",
+      });
+    }
+
+    res.status(200).send({
+      error: false,
+      success: true,
+      message: "Enrolled Class",
+      data: result[0],
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // get all the assignments for a specific class
 
 usersRoute.get("/all-assignments/:id", verifyToken, async (req, res, next) => {
@@ -219,27 +273,49 @@ usersRoute.get("/all-assignments/:id", verifyToken, async (req, res, next) => {
 
 // assignment submisstion
 
-usersRoute.patch(
-  "/assignment-submission/:id",
+usersRoute.post(
+  "/assignment-submission",
   verifyToken,
   async (req, res, next) => {
-    const id = req.params?.id;
-    const query = { _id: new ObjectId(id) };
-    const updateAssignment = {
-      $inc: { submissions: 1 },
-    };
-    const options = { returnDocument: "after" };
+    const submission = req.body;
+
+    if (!submission) {
+      return res.status(404).send({
+        error: true,
+        success: false,
+        message: "Submission is required!",
+      });
+    }
 
     try {
-      const result = await assignmentCollection.findOneAndUpdate(
-        query,
-        updateAssignment,
-        options
-      );
+      // check if the user has already submitted the assignment
+      const checkSubmission = await submissionCollection.findOne({
+        user: submission.user,
+        assignmentId: submission.assignmentId,
+      });
 
-      res.send({
-        success: true,
+      if (checkSubmission) {
+        return res.status(404).send({
+          error: true,
+          success: false,
+          message: "You have already submitted the assignment",
+        });
+      }
+
+      const result = await submissionCollection.insertOne(submission);
+      // increase the submission count in the assignment collection
+
+      const query = { _id: new ObjectId(submission.assignmentId) };
+      const updata = {
+        $inc: { submissions: 1 },
+      };
+
+      await assignmentCollection.findOneAndUpdate(query, updata);
+
+      res.status(200).send({
         error: false,
+        success: true,
+        message: "Assignment submitted successfully",
         data: result,
       });
     } catch (error) {
@@ -247,7 +323,6 @@ usersRoute.patch(
     }
   }
 );
-
 // class feedback
 usersRoute.post("/feedback", verifyToken, async (req, res, next) => {
   const feedback = req.body;
@@ -325,6 +400,21 @@ usersRoute.get("/homepage-stats", async (req, res, next) => {
       success: true,
       message: "Homepage stats",
       data: { totalClasses, totalUsers, totalEnrollments },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// get all the feedbacks
+usersRoute.get("/feedbacks", async (req, res, next) => {
+  try {
+    const result = await feedbackCollection.find().toArray();
+    res.status(200).send({
+      error: false,
+      success: true,
+      message: "All the feedbacks",
+      data: result,
     });
   } catch (error) {
     next(error);
