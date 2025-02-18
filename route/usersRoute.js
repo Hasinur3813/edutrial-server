@@ -54,16 +54,19 @@ usersRoute.get("/all-classes", async (req, res, next) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
+  const sortQuery = req.query.sort || "0";
+  const sort = sortQuery === "1" ? 1 : sortQuery === "2" ? -1 : 0;
 
   try {
+    const query = { status: "accepted" };
+    const sortOptions = sort === 0 ? {} : { price: sort };
     const result = await classCollection
-      .find({ status: "accepted" })
+      .find(query)
+      .sort(sortOptions)
       .skip(skip)
       .limit(limit)
       .toArray();
-    const totalClasses = await classCollection.countDocuments({
-      status: "accepted",
-    });
+    const totalClasses = await classCollection.countDocuments(query);
     res.status(200).send({
       error: false,
       success: true,
