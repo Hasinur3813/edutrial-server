@@ -3,11 +3,12 @@ import verifyToken from "../middleware/verifyToken.js";
 import verifyAdmin from "../middleware/verifyAdmin.js";
 import { db } from "../config/db.js";
 import { ObjectId } from "mongodb";
-
 const adminRoute = express.Router();
+
 const teachersCollection = db.collection("teachers");
 const userCollection = db.collection("users");
 const classCollection = db.collection("classes");
+const enrollmentCollection = db.collection("enrollments");
 
 adminRoute.get(
   "/teachers",
@@ -324,6 +325,69 @@ adminRoute.patch(
         success: true,
         message: "The class has been accepted",
         data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// get overall statistics
+adminRoute.get(
+  "/statistics",
+  verifyToken,
+  verifyAdmin,
+  async (req, res, next) => {
+    try {
+      const totalClasses = await classCollection.countDocuments();
+      const totalEnrollments = await enrollmentCollection.countDocuments();
+      const totalUsers = await userCollection.countDocuments();
+      const totalTeachers = await userCollection
+        .find({ role: "teacher" })
+        .toArray();
+      const totalStudents = await userCollection
+        .find({ role: "student" })
+        .toArray();
+      const totalAdmins = await userCollection
+        .find({ role: "admin" })
+        .toArray();
+
+      // get enrollments trends
+      const enrollmentData = await enrollmentCollection
+        .aggregate([
+          {
+            $group: {
+              _id: {
+                month: { $dateToString: { format: "%b", date: "$date" } },
+              },
+              enrollments: { $sum: 1 },
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              month: "$_id.month",
+              enrollments: 1,
+            },
+          },
+        ])
+        .toArray();
+
+      res.status(200).send({
+        success: true,
+        error: false,
+        message: "Statistics",
+        data: {
+          totalClasses,
+          totalEnrollments,
+          userDemographics: [
+            { name: "Students", value: totalStudents.length },
+            { name: "Users", value: totalUsers },
+            { name: "Educators", value: totalTeachers.length },
+            { name: "Admins", value: totalAdmins.length },
+          ],
+          enrollmentData,
+        },
       });
     } catch (error) {
       next(error);
