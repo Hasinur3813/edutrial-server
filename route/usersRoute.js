@@ -1,7 +1,7 @@
 import express from "express";
 import { db } from "../config/db.js";
 import verifyToken from "../middleware/verifyToken.js";
-import { ObjectId, ReturnDocument } from "mongodb";
+import { ObjectId } from "mongodb";
 import dotenv from "dotenv";
 dotenv.config();
 import Stripe from "stripe";
@@ -448,4 +448,50 @@ usersRoute.get("/feedbacks", async (req, res, next) => {
     next(error);
   }
 });
+
+// get payment history for the students
+
+usersRoute.get("/payment-history/:email", async (req, res, next) => {
+  const email = req.params.email;
+
+  try {
+    const payments = await enrollCollection
+      .aggregate([
+        { $match: { user: email } },
+        {
+          $addFields: {
+            classIdObj: { $toObjectId: "$classId" },
+          },
+        },
+        {
+          $lookup: {
+            from: "classes",
+            localField: "classIdObj",
+            foreignField: "_id",
+            as: "classDetails",
+          },
+        },
+        { $unwind: "$classDetails" },
+        {
+          $project: {
+            _id: 0,
+            transactionId: "$payment_id",
+            date: 1,
+            class: {
+              id: "$classDetails._id",
+              title: "$classDetails.title",
+              instructor: "$classDetails.name",
+              price: "$classDetails.price",
+            },
+          },
+        },
+      ])
+      .toArray();
+
+    res.json(payments);
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default usersRoute;
