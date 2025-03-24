@@ -24,6 +24,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
+      "https://edutrial-ler.vercel.app",
       "https://fir-learning-793eb.web.app",
       "https://fir-learning-793eb.firebaseapp.com",
     ],
